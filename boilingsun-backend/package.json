@@ -1,0 +1,22 @@
+{
+    "name": "boilingsun-backend",
+    "version": "1.0.0",
+    "main": "index.js",
+    "author": "ByeonghunLee",
+    "license": "MIT",
+    "dependencies": {
+        "koa": "^2.7.0",
+        "koa-router": "^7.4.0"
+    },
+    "devDependencies": {
+        "@types/koa": "^2.0.48",
+        "@types/koa-router": "^7.0.40",
+        "nodemon": "^1.19.0",
+        "ts-node": "^8.1.0",
+        "typescript": "^3.4.5"
+    },
+    "scripts": {
+        "start": "node src",
+        "test": "nodemon --watch 'src/**/*' -e ts,tsx --exec ts-node ./src/server.ts"
+    }
+}
