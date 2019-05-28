@@ -1,18 +1,11 @@
 const Router = require("koa-router");
+const cardsCtrl = require("./cards.ctrl");
 
 const cards = new Router();
 
-const printInfo = (ctx) => {
-    ctx.body = {
-        method: ctx.method,
-        path: ctx.path,
-        params: ctx.params,
-    };
-};
 
-cards.get("/", printInfo);
-cards.post("/", printInfo);
-cards.get("/:id", printInfo);
+cards.get("/", cardsCtrl.list);
+cards.post("/", cardsCtrl.write);
 
 module.exports = cards;
 
