@@ -12,7 +12,7 @@ const cards = [
 ];
 
 // 카드 작성
-// POST /cards
+// POST /api/cards
 // { title, url, body, categoryId }
 
 exports.write = (ctx) => {
@@ -34,3 +34,63 @@ exports.write = (ctx) => {
 exports.list = (ctx) => {
     ctx.body = cards;
 }
+
+// 특정 카드 조회
+// GET /api/cards/:id
+exports.read = (ctx) => {
+    const { id } = ctx.params;
+
+    const card = cards.find(c => c.id.toString() === id);
+
+    if(!card) {
+        ctx.status = 404;
+        ctx.body = {
+            message: "카드가 존재하지 않습니다."
+        };
+        return;
+    }
+
+    ctx.body = card;
+};
+
+// 특정 카드 제거
+// DELETE /api/cards/:id
+exports.remove = (ctx) => {
+    const { id } = ctx.params;
+
+    const index = cards.findIndex(c => c.id.toString() === id);
+    
+    if(index === -1) {
+        ctx.status = 404;
+        ctx.body = {
+            message: "카드가 존재하지 않습니다."
+        };
+        return;
+    }
+
+    cards.splice(index, 1);
+    ctx.status = 204;
+};
+
+// 카드 수정(특정 필드 변경)
+// PATCH /api/cards/:id
+// { title, url, body, categoryId }
+exports.update = (ctx) => {
+    const { id } = ctx.params;
+
+    const index = cards.findIndex(c => c.id.toString() === id);
+
+    if(index === -1) {
+        ctx.status = 404;
+        ctx.body = {
+            message: "카드가 존재하지 않습니다."
+        };
+        return;
+    }
+
+    cards[index] = {
+        ...cards[index],
+        ...ctx.request.body
+    };
+    ctx.body = cards[index];
+};
