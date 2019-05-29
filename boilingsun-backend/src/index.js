@@ -1,8 +1,23 @@
+require("dotenv").config();
+
 const Koa = require("koa");
 const Router = require("koa-router");
 const bodyParser = require("koa-bodyparser");
+const mongoose = require("mongoose");
 
 const api = require("./api/index");
+
+const {
+    PORT: port = 4000, //값이 존재 하지 않는다면 기본 4000
+    MONGO_URI: mongoURI
+} = process.env;
+
+mongoose.Promise = global.Promise;
+mongoose.connect(mongoURI, { useNewUrlParser: true }).then(() => {
+    console.log("connected to mongodb");
+}).catch((e) => {
+    console.log(e);
+})
 
 const app = new Koa();
 const router = new Router();
@@ -14,6 +29,6 @@ app.use(bodyParser());
 
 app.use(router.routes()).use(router.allowedMethods());
  
-app.listen(4000, () => {
-    console.log("4000포트 연결됨");
+app.listen(port, () => {
+    console.log("listening to port", port);
 });
