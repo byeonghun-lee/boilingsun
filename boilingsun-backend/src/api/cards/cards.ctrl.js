@@ -1,21 +1,38 @@
-let cardId = 1;
+const Card = require("models/card");
+const Joi = require("joi");
+const { ObjectId } = require("mongoose").Types;
 
-const cards = [
-    {
-        id: 1,
-        title: "구글",
-        url: "https://www.google.com",
-        body: "구글 홈페이지",
-        isRead: false,
-        categoryId: 3
+exports.checkObjectId = (ctx, next) => {
+    const { id } = ctx.params;
+
+    //검증 실패
+    if(!ObjectId.isValid(id)) {
+        ctx.status = 400;
+        return null;
     }
-];
+
+    return next();
+};
 
 // 카드 작성
 // POST /api/cards
 // { title, url, body, categoryId }
+exports.write = async (ctx) => {
+    const schema = Joi.object().keys({
+        title: Joi.string().required(),
+        url: Joi.string().required(),
+        body: Joi.string(),
+        categoryId: Joi.number()
+    });
 
-exports.write = (ctx) => {
+    const result = Joi.validate(ctx.request.body, schema);
+
+    if (result.error) {
+        ctx.status = 404;
+        ctx.body = result.error;
+        return;
+    }
+
     const {
         title,
         url,
@@ -23,74 +40,92 @@ exports.write = (ctx) => {
         categoryId
     } = ctx.request.body;
 
-    cardId += 1;
 
-    const card = { id: cardId, title, url, body, categoryId };
-    cards.push(card);
-    ctx.body = card;
-}
+    const card = new Card({
+        title, url, body, categoryId
+    });
+
+    try {
+        await card.save();
+        ctx.body = card;
+    } catch (e) {
+        ctx.throw(e, 500);
+    }
+};
 
 // 카드 목록 조회
-exports.list = (ctx) => {
-    ctx.body = cards;
-}
+exports.list = async (ctx) => {
+    const page = parseInt(ctx.query.page || 1, 10);
 
-// 특정 카드 조회
-// GET /api/cards/:id
-exports.read = (ctx) => {
-    const { id } = ctx.params;
-
-    const card = cards.find(c => c.id.toString() === id);
-
-    if(!card) {
-        ctx.status = 404;
-        ctx.body = {
-            message: "카드가 존재하지 않습니다."
-        };
+    if(page < 1) {
+        cgx.status = 400;
         return;
     }
 
-    ctx.body = card;
+    try {
+        const cards = await Card.find()
+            .sort({_id: -1})
+            .limit(12)
+            .skip((page - 1) * 12)
+            .lean()
+            .exec();
+        
+        const cardCount = await Card.countDocuments().exec();
+        const LimitBodyLength = card => ({
+            ...card,
+            body: card.body.length < 30 ? card.body : `${card.body.slice(0, 30)}...`
+        });
+        ctx.body = cards.map(LimitBodyLength);
+        ctx.set("Last-Page", Math.ceil(cardCount / 12));
+    } catch (e) {
+        ctx.throw(e, 500);
+    }
+};
+
+// 특정 카드 조회
+// GET /api/cards/:id
+exports.read = async (ctx) => {
+    const { id } = ctx.params;
+    try {
+        const card = await Card.findById(id).exec();
+        if (!card) {
+            ctx.status = 404;
+            return;
+        }
+        ctx.body = card;
+    } catch (e) {
+        ctx.throw(e, 500);
+    }
 };
 
 // 특정 카드 제거
 // DELETE /api/cards/:id
-exports.remove = (ctx) => {
+exports.remove = async (ctx) => {
     const { id } = ctx.params;
-
-    const index = cards.findIndex(c => c.id.toString() === id);
-    
-    if(index === -1) {
-        ctx.status = 404;
-        ctx.body = {
-            message: "카드가 존재하지 않습니다."
-        };
-        return;
+    try {
+        await Card.findByIdAndRemove(id).exec();
+        ctx.status = 204;
+    } catch (e) {
+        ctx.throw(e, 500);
     }
-
-    cards.splice(index, 1);
-    ctx.status = 204;
 };
 
 // 카드 수정(특정 필드 변경)
 // PATCH /api/cards/:id
 // { title, url, body, categoryId }
-exports.update = (ctx) => {
+exports.update = async (ctx) => {
     const { id } = ctx.params;
+    try {
+        const card = await Card.findByIdAndUpdate(id, ctx.request.body, {
+            new: true
+        }).exec();
 
-    const index = cards.findIndex(c => c.id.toString() === id);
-
-    if(index === -1) {
-        ctx.status = 404;
-        ctx.body = {
-            message: "카드가 존재하지 않습니다."
-        };
-        return;
+        if(!card) {
+            ctx.status = 404;
+            return;
+        }
+        ctx.body = card;
+    } catch (e) {
+        ctx.throw(e, 500);
     }
-
-    cards[index] = {
-        ...cards[index],
-        ...ctx.request.body
-    };
-    ctx.body = cards[index];
 };
