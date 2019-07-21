@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const Category = require("models/category");
+
 const { Schema } = mongoose;
 
 const User = new Schema({
@@ -33,7 +35,7 @@ User.methods.generateAuthToken = async function() {
     );
 
     return token;
-}
+};
 
 User.statics.findByCredentials = async function(userId, password) {
     const user = await this.findOne({ userId });
@@ -49,7 +51,7 @@ User.statics.findByCredentials = async function(userId, password) {
     }
 
     return user;
-}
+};
 
 User.pre("save", async function (next) {
     const user = this;
@@ -57,6 +59,46 @@ User.pre("save", async function (next) {
        user.password = await bcrypt.hash(user.password, 8);
     }
     next();
-})
+});
+
+User.post("save", async function (next) {
+    const user = this;
+
+    if(!user) return;
+
+    try {       
+        const basicCategories = await Category.findOne({
+            owner: this._id,
+            isBasic: true
+        }).exec();
+
+        console.log("basicCategories:", basicCategories);
+    
+        if(!basicCategories) {
+            const trashCategory = new Category({
+                name: "trash",
+                isBasic: true,
+                owner: this._id
+            });
+
+            const basicCategory = new Category({
+                name: "chocolateCastle",
+                isBasic: true,
+                owner: this._id
+            });
+    
+            await basicCategory.save()
+                .then(async (res) => {
+                    trashCategory.nextCategery = res._id;
+                    await trashCategory.save();
+                });
+            console.log("trashCategory:", trashCategory);
+            console.log("basicCategory:", basicCategory);
+        }
+    } catch (e) {
+        console.log("user save error:", e);
+        ctx.throw(e, 500);
+    }
+});
 
 module.exports = mongoose.model("User", User);
