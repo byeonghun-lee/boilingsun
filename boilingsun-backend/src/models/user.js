@@ -1,10 +1,10 @@
 require("dotenv").config();
 
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-const Category = require("models/category");
+import Category from "models/category";
 
 const { Schema } = mongoose;
 
@@ -14,24 +14,25 @@ const User = new Schema({
         unique: true,
         trim: true,
         required: true,
-        lowercase: true,
+        lowercase: true
     },
     password: {
         type: String,
-        required: true,
+        required: true
     },
     email: {
         type: String,
         trim: true,
-        lowercase: true,
-    },
+        lowercase: true
+    }
 });
 
 User.methods.generateAuthToken = async function() {
     const user = this;
     const token = await jwt.sign(
         { userId: user.userId },
-        process.env.STRING_FOR_TOKEN_ISSUANCE
+        process.env.STRING_FOR_TOKEN_ISSUANCE,
+        { expiresIn: "7d" }
     );
 
     return token;
@@ -40,41 +41,41 @@ User.methods.generateAuthToken = async function() {
 User.statics.findByCredentials = async function(userId, password) {
     const user = await this.findOne({ userId });
 
-    if(!user) {
+    if (!user) {
         throw new Error("Unable to login");
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
-    if(!isMatch) {
+    if (!isMatch) {
         throw new Error("Unable to login");
     }
 
     return user;
 };
 
-User.pre("save", async function (next) {
+User.pre("save", async function(next) {
     const user = this;
     if (user.isModified("password")) {
-       user.password = await bcrypt.hash(user.password, 8);
+        user.password = await bcrypt.hash(user.password, 8);
     }
     next();
 });
 
-User.post("save", async function (next) {
+User.post("save", async function(next) {
     const user = this;
 
-    if(!user) return;
+    if (!user) return;
 
-    try {       
+    try {
         const basicCategories = await Category.findOne({
             owner: this._id,
             isBasic: true
         }).exec();
 
         console.log("basicCategories:", basicCategories);
-    
-        if(!basicCategories) {
+
+        if (!basicCategories) {
             const trashCategory = new Category({
                 name: "trash",
                 isBasic: true,
@@ -86,12 +87,11 @@ User.post("save", async function (next) {
                 isBasic: true,
                 owner: this._id
             });
-    
-            await basicCategory.save()
-                .then(async (res) => {
-                    trashCategory.nextCategery = res._id;
-                    await trashCategory.save();
-                });
+
+            await basicCategory.save().then(async res => {
+                trashCategory.nextCategery = res._id;
+                await trashCategory.save();
+            });
             console.log("trashCategory:", trashCategory);
             console.log("basicCategory:", basicCategory);
         }
@@ -101,4 +101,4 @@ User.post("save", async function (next) {
     }
 });
 
-module.exports = mongoose.model("User", User);
+export default mongoose.model("User", User);

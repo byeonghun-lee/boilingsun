@@ -1,14 +1,20 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
 const Card = new Schema({
     title: String,
-    url: String,
+    url: {
+        type: String,
+        required: true
+    },
     body: String,
     isRead: {
         type: Boolean,
         default: false
+    },
+    readDate: {
+        type: Date
     },
     categoryId: Number,
     createdDate: {
@@ -17,4 +23,4 @@ const Card = new Schema({
     }
 });
 
-module.exports = mongoose.model("Card", Card);
+export default mongoose.model("Card", Card);

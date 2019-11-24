@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+mongoose.set("useFindAndModify", false);
 
 const { Schema } = mongoose;
 
@@ -25,4 +26,4 @@ const Category = new Schema({
     }
 });
 
-module.exports = mongoose.model("Category", Category);
+export default mongoose.model("Category", Category);

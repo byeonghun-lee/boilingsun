@@ -1,12 +1,14 @@
-const Card = require("models/card");
-const Joi = require("joi");
-const { ObjectId } = require("mongoose").Types;
+import Card from "models/card";
+import Joi from "joi";
+import mongoose from "mongoose";
 
-exports.checkObjectId = (ctx, next) => {
+const { ObjectId } = mongoose.Types;
+
+export const checkObjectId = (ctx, next) => {
     const { id } = ctx.params;
 
     //검증 실패
-    if(!ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(id)) {
         ctx.status = 400;
         return null;
     }
@@ -17,7 +19,7 @@ exports.checkObjectId = (ctx, next) => {
 // 카드 작성
 // POST /api/cards
 // { title, url, body, categoryId }
-exports.write = async (ctx) => {
+export const write = async ctx => {
     const schema = Joi.object().keys({
         title: Joi.string().required(),
         url: Joi.string().required(),
@@ -33,16 +35,13 @@ exports.write = async (ctx) => {
         return;
     }
 
-    const {
+    const { title, url, body, categoryId } = ctx.request.body;
+
+    const card = new Card({
         title,
         url,
         body,
         categoryId
-    } = ctx.request.body;
-
-
-    const card = new Card({
-        title, url, body, categoryId
     });
 
     try {
@@ -54,26 +53,29 @@ exports.write = async (ctx) => {
 };
 
 // 카드 목록 조회
-exports.list = async (ctx) => {
+export const list = async ctx => {
     const page = parseInt(ctx.query.page || 1, 10);
 
-    if(page < 1) {
+    if (page < 1) {
         cgx.status = 400;
         return;
     }
 
     try {
         const cards = await Card.find()
-            .sort({_id: -1})
+            .sort({ _id: -1 })
             .limit(12)
             .skip((page - 1) * 12)
             .lean()
             .exec();
-        
+
         const cardCount = await Card.countDocuments().exec();
         const LimitBodyLength = card => ({
             ...card,
-            body: card.body.length < 30 ? card.body : `${card.body.slice(0, 30)}...`
+            body:
+                card.body.length < 30
+                    ? card.body
+                    : `${card.body.slice(0, 30)}...`
         });
         ctx.body = cards.map(LimitBodyLength);
         ctx.set("Last-Page", Math.ceil(cardCount / 12));
@@ -84,7 +86,7 @@ exports.list = async (ctx) => {
 
 // 특정 카드 조회
 // GET /api/cards/:id
-exports.read = async (ctx) => {
+export const read = async ctx => {
     const { id } = ctx.params;
     try {
         const card = await Card.findById(id).exec();
@@ -100,7 +102,7 @@ exports.read = async (ctx) => {
 
 // 특정 카드 제거
 // DELETE /api/cards/:id
-exports.remove = async (ctx) => {
+export const remove = async ctx => {
     const { id } = ctx.params;
     try {
         await Card.findByIdAndRemove(id).exec();
@@ -113,14 +115,14 @@ exports.remove = async (ctx) => {
 // 카드 수정(특정 필드 변경)
 // PATCH /api/cards/:id
 // { title, url, body, categoryId }
-exports.update = async (ctx) => {
+export const update = async ctx => {
     const { id } = ctx.params;
     try {
         const card = await Card.findByIdAndUpdate(id, ctx.request.body, {
             new: true
         }).exec();
 
-        if(!card) {
+        if (!card) {
             ctx.status = 404;
             return;
         }
