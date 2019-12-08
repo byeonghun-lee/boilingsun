@@ -2,8 +2,12 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-const Card = new Schema({
+const CardSchema = new Schema({
     title: String,
+    owner: {
+        type: String,
+        required: true
+    },
     url: {
         type: String,
         required: true
@@ -16,11 +20,12 @@ const Card = new Schema({
     readDate: {
         type: Date
     },
-    categoryId: Number,
+    categoryId: String,
     createdDate: {
         type: Date,
         default: new Date()
     }
 });
 
-export default mongoose.model("Card", Card);
+const Card = mongoose.model("Card", CardSchema);
+export default Card;

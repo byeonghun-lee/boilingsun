@@ -8,7 +8,7 @@ import Category from "models/category";
 
 const { Schema } = mongoose;
 
-const User = new Schema({
+const UserSchema = new Schema({
     userId: {
         type: String,
         unique: true,
@@ -22,12 +22,19 @@ const User = new Schema({
     },
     email: {
         type: String,
+        unique: true,
         trim: true,
         lowercase: true
     }
 });
 
-User.methods.generateAuthToken = async function() {
+UserSchema.methods.serialize = function() {
+    const data = this.toJSON();
+    delete data.password;
+    return data;
+};
+
+UserSchema.methods.generateAuthToken = async function() {
     const user = this;
     const token = await jwt.sign(
         { userId: user.userId },
@@ -38,7 +45,7 @@ User.methods.generateAuthToken = async function() {
     return token;
 };
 
-User.statics.findByCredentials = async function(userId, password) {
+UserSchema.statics.findByCredentials = async function(userId, password) {
     const user = await this.findOne({ userId });
 
     if (!user) {
@@ -54,7 +61,7 @@ User.statics.findByCredentials = async function(userId, password) {
     return user;
 };
 
-User.pre("save", async function(next) {
+UserSchema.pre("save", async function(next) {
     const user = this;
     if (user.isModified("password")) {
         user.password = await bcrypt.hash(user.password, 8);
@@ -62,7 +69,7 @@ User.pre("save", async function(next) {
     next();
 });
 
-User.post("save", async function(next) {
+UserSchema.post("save", async function(next) {
     const user = this;
 
     if (!user) return;
@@ -101,4 +108,5 @@ User.post("save", async function(next) {
     }
 });
 
-export default mongoose.model("User", User);
+const User = mongoose.model("User", UserSchema);
+export default User;

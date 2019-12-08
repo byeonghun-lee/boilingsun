@@ -3,7 +3,7 @@ mongoose.set("useFindAndModify", false);
 
 const { Schema } = mongoose;
 
-const Category = new Schema({
+const CategorySchema = new Schema({
     name: {
         type: String,
         required: true
@@ -26,4 +26,5 @@ const Category = new Schema({
     }
 });
 
-export default mongoose.model("Category", Category);
+const Category = mongoose.model("Category", CategorySchema);
+export default Category;
