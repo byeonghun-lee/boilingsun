@@ -1,6 +1,7 @@
 import Card from "models/card";
 import Joi from "joi";
 import mongoose from "mongoose";
+import Category from "models/category";
 
 const { ObjectId } = mongoose.Types;
 
@@ -18,11 +19,12 @@ export const checkObjectId = (ctx, next) => {
 
 // 카드 작성
 // POST /api/cards
-// { title, url, body, categoryId }
+// { title, url, owner ,body, categoryId }
 export const write = async ctx => {
     const schema = Joi.object().keys({
         title: Joi.string().required(),
         url: Joi.string().required(),
+        owner: Joi.string().required(),
         body: Joi.string(),
         categoryId: Joi.number()
     });
@@ -35,11 +37,21 @@ export const write = async ctx => {
         return;
     }
 
-    const { title, url, body, categoryId } = ctx.request.body;
+    if (!ctx.request.body.categoryId) {
+        const basicCategory = await Category.findOne({
+            owner: ctx.request.body.owner,
+            isBasic: true,
+            name: "chocolateCastle"
+        }).exec();
+        ctx.request.body.categoryId = basicCategory._id;
+    }
+
+    const { title, url, owner, body, categoryId } = ctx.request.body;
 
     const card = new Card({
         title,
         url,
+        owner,
         body,
         categoryId
     });
